@@ -88,7 +88,7 @@ def train(args, io):
             batch_size = data.size()[0]
             opt.zero_grad()
             logits = model(data)
-            loss = criterion(logits, float(label))
+            loss = criterion(logits, label)
             loss.backward()
             opt.step()
             preds = logits.max(dim=1)[1]
