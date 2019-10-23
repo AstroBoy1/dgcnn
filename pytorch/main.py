@@ -80,6 +80,7 @@ def train(args, io):
         #train_pred = []
         #train_true = []
         for data, label in train_loader:
+            print("label", label)
             data, label = data.to(device), label.to(device).squeeze()
             data = data.permute(0, 2, 1)
             batch_size = data.size()[0]
