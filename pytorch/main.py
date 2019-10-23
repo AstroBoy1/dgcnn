@@ -90,21 +90,7 @@ def train(args, io):
             opt.step()
             preds = logits.max(dim=1)[1]
             count += batch_size
-            #train_loss += loss.item() * batch_size
-            #train_true.append(label.cpu().numpy())
-            #train_pred.append(preds.detach().cpu().numpy())
-        #train_true = np.concatenate(train_true)
-        #train_pred = np.concatenate(train_pred)
-        /*outstr = 'Train %d, loss: %.6f, train acc: %.6f, train avg acc: %.6f' % (epoch,
-                                                                                 train_loss*1.0/count,
-                                                                                 metrics.accuracy_score(
-                                                                                     train_true, train_pred),
-                                                                                 metrics.balanced_accuracy_score(
-                                                                                     train_true, train_pred))
-        */
-        #io.cprint(outstr)
-        print("finished epoch")
-
+        io.cprint('finished epoch')
         ####################
         # Test
         ####################
