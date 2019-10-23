@@ -77,8 +77,8 @@ def train(args, io):
         train_loss = 0.0
         count = 0.0
         model.train()
-        train_pred = []
-        train_true = []
+        #train_pred = []
+        #train_true = []
         for data, label in train_loader:
             data, label = data.to(device), label.to(device).squeeze()
             data = data.permute(0, 2, 1)
@@ -90,18 +90,20 @@ def train(args, io):
             opt.step()
             preds = logits.max(dim=1)[1]
             count += batch_size
-            train_loss += loss.item() * batch_size
-            train_true.append(label.cpu().numpy())
-            train_pred.append(preds.detach().cpu().numpy())
-        train_true = np.concatenate(train_true)
-        train_pred = np.concatenate(train_pred)
-        outstr = 'Train %d, loss: %.6f, train acc: %.6f, train avg acc: %.6f' % (epoch,
+            #train_loss += loss.item() * batch_size
+            #train_true.append(label.cpu().numpy())
+            #train_pred.append(preds.detach().cpu().numpy())
+        #train_true = np.concatenate(train_true)
+        #train_pred = np.concatenate(train_pred)
+        /*outstr = 'Train %d, loss: %.6f, train acc: %.6f, train avg acc: %.6f' % (epoch,
                                                                                  train_loss*1.0/count,
                                                                                  metrics.accuracy_score(
                                                                                      train_true, train_pred),
                                                                                  metrics.balanced_accuracy_score(
                                                                                      train_true, train_pred))
-        io.cprint(outstr)
+        */
+        #io.cprint(outstr)
+        print("finished epoch")
 
         ####################
         # Test
@@ -109,8 +111,8 @@ def train(args, io):
         test_loss = 0.0
         count = 0.0
         model.eval()
-        test_pred = []
-        test_true = []
+        #test_pred = []
+        #test_true = []
         for data, label in test_loader:
             data, label = data.to(device), label.to(device).squeeze()
             data = data.permute(0, 2, 1)
@@ -119,23 +121,12 @@ def train(args, io):
             loss = criterion(logits, label)
             preds = logits.max(dim=1)[1]
             count += batch_size
-            test_loss += loss.item() * batch_size
-            test_true.append(label.cpu().numpy())
-            test_pred.append(preds.detach().cpu().numpy())
-        test_true = np.concatenate(test_true)
-        test_pred = np.concatenate(test_pred)
-        test_acc = metrics.accuracy_score(test_true, test_pred)
-        avg_per_class_acc = metrics.balanced_accuracy_score(test_true, test_pred)
-        outstr = 'Test %d, loss: %.6f, test acc: %.6f, test avg acc: %.6f' % (epoch,
-                                                                              test_loss*1.0/count,
-                                                                              test_acc,
-                                                                              avg_per_class_acc)
-        io.cprint(outstr)
-        if test_acc >= best_test_acc:
-            best_test_acc = test_acc
-            torch.save(model.state_dict(), 'checkpoints/%s/models/model.t7' % args.exp_name)
+        io.cprint("fnished testing epoch")
+        #if test_acc >= best_test_acc:
+        #    best_test_acc = test_acc
+        #    torch.save(model.state_dict(), 'checkpoints/%s/models/model.t7' % args.exp_name)
 
-
+/*
 def test(args, io):
     test_loader = DataLoader(ModelNet40(partition='test', num_points=args.num_points),
                              batch_size=args.test_batch_size, shuffle=True, drop_last=False)
@@ -166,7 +157,7 @@ def test(args, io):
     avg_per_class_acc = metrics.balanced_accuracy_score(test_true, test_pred)
     outstr = 'Test :: test acc: %.6f, test avg acc: %.6f'%(test_acc, avg_per_class_acc)
     io.cprint(outstr)
-
+*/
 
 if __name__ == "__main__":
     # Training settings
