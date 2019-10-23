@@ -86,7 +86,7 @@ class PointNet(nn.Module):
 
 
 class DGCNN(nn.Module):
-    def __init__(self, args, output_channels=40):
+    def __init__(self, args, output_channels=1):
         super(DGCNN, self).__init__()
         self.args = args
         self.k = args.k
