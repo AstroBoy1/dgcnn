@@ -69,6 +69,7 @@ def train(args, io):
     criterion = nn.MSELoss()
 
     best_test_acc = 0
+    cuda0 = torch.device('cuda:0')
     for epoch in range(args.epochs):
         scheduler.step()
         ####################
