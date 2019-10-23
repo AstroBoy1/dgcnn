@@ -84,6 +84,7 @@ def train(args, io):
             #data, label = data.to(device), label.to(device).squeeze()
             data = data.to(device)
             label = torch.tensor(label, dtype=torch.float64)
+            label = label.to(device).squeeze()
             data = data.permute(0, 2, 1)
             batch_size = data.size()[0]
             opt.zero_grad()
@@ -106,6 +107,7 @@ def train(args, io):
             #data, label = data.to(device), label.to(device).squeeze()
             data = data.to(device)
             label = torch.tensor(label, dtype=torch.float64)
+            label = label.to(device).squeeze()
             data = data.permute(0, 2, 1)
             batch_size = data.size()[0]
             logits = model(data)
