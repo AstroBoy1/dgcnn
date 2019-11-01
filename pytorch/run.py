@@ -1,12 +1,3 @@
-# !/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-@Author: Yue Wang
-@Contact: yuewangx@mit.edu
-@File: main.py
-@Time: 2018/10/13 10:39 PM
-"""
-
 from __future__ import print_function
 import os
 import argparse
@@ -21,6 +12,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from util import cal_loss, IOStream
 import sklearn.metrics as metrics
+from sklearn.model_selection import train_test_split
 
 
 def _init_():
@@ -66,11 +58,11 @@ def train(args, io):
     scheduler = CosineAnnealingLR(opt, args.epochs, eta_min=args.lr)
 
     criterion = cal_loss
-    # criterion = nn.MSELoss()
     criterion = nn.L1Loss()
 
-    best_test_acc = 0
-    count = 0
+    n_splits = 5
+    splits = list()
+
     for epoch in range(args.epochs):
         scheduler.step()
         ####################
@@ -83,10 +75,7 @@ def train(args, io):
         train_true = []
         print(len(train_loader))
         for data, label in train_loader:
-            # data, label = data.to(device), label.to(device).squeeze()
-            # label = torch.ones(32, 1, dtype=torch.float, requires_grad=True)
             data, label = data.to(device), label.to(device)
-            # count += 1
             data = data.permute(0, 2, 1)
             batch_size = data.size()[0]
             opt.zero_grad()

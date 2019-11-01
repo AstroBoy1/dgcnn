@@ -31,16 +31,17 @@ def download():
 
 
 def load_data(partition):
-    download()
+    #download()
     #BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     #DATA_DIR = os.path.join(BASE_DIR, 'data')
-    DATA_DIR = 'data'
+    DATA_DIR = "C:/Users/MOmori/Desktop/astro/dgcnn/pytorch/data/"
     all_data = []
     all_label = []
-    for h5_name in glob.glob(os.path.join(DATA_DIR, 'modelnet40_ply_hdf5_2048', 'ply_data_%s*.h5'%partition)):
-        f = h5py.File(h5_name)
+    for h5_name in os.listdir(DATA_DIR):
+        #print(h5_name)
+        f = h5py.File(DATA_DIR + "/" + h5_name)
         data = f['data'][:].astype('float32')
-        label = f['label'][:].astype('int64')
+        label = f['label'][:].astype('float32')
         f.close()
         all_data.append(data)
         all_label.append(label)
@@ -83,7 +84,10 @@ class ModelNet40(Dataset):
 
 if __name__ == '__main__':
     train = ModelNet40(1024)
-    test = ModelNet40(1024, 'test')
-    for data, label in train:
-        print(data.shape)
-        print(label.shape)
+    #test = ModelNet40(1024, 'test')
+    print(len(train))
+    print(train[0][0].shape)
+    print(train[0][1].shape)
+    # for data, label in train:
+    #     print(data.shape)
+    #     print(label.shape)
