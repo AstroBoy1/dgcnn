@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
@@ -31,16 +32,25 @@ def download():
 
 
 def load_data(partition):
-    download()
+    #download()
     #BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     #DATA_DIR = os.path.join(BASE_DIR, 'data')
-    DATA_DIR = 'data'
+    #DATA_DIR = '~/dgcnn/pytorch/data/astro'
     all_data = []
     all_label = []
-    for h5_name in glob.glob(os.path.join(DATA_DIR, 'modelnet40_ply_hdf5_2048', 'ply_data_%s*.h5'%partition)):
-        f = h5py.File(h5_name)
+    #print("data directory:", DATA_DIR)
+    #for h5_name in glob.glob(os.path.join(DATA_DIR, 'modelnet40_ply_hdf5_2048', 'ply_data_%s*.h5'%partition)):
+    #print("loading data")
+    for h5_name in glob.glob("data/caesar/*"):
+        #print(h5_name)
+        #break
+        f = h5py.File(h5_name, 'r')
+        #break
         data = f['data'][:].astype('float32')
-        label = f['label'][:].astype('int64')
+        #print("data", len(data))
+        #label = f['label'][:].astype('int64')
+        label = f['label'][:].astype('float32')
+        #print("label", len(label))
         f.close()
         all_data.append(data)
         all_label.append(label)
@@ -66,6 +76,7 @@ def jitter_pointcloud(pointcloud, sigma=0.01, clip=0.02):
 class ModelNet40(Dataset):
     def __init__(self, num_points, partition='train'):
         self.data, self.label = load_data(partition)
+        #print(len(self.data), len(self.label))
         self.num_points = num_points
         self.partition = partition        
 

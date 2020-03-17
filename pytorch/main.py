@@ -37,10 +37,14 @@ def _init_():
     os.system('cp data.py checkpoints' + '/' + args.exp_name + '/' + 'data.py.backup')
 
 def train(args, io):
+    # train_loader = DataLoader(ModelNet40(partition='train', num_points=args.num_points), num_workers=8,
+    #                           batch_size=args.batch_size, shuffle=True, drop_last=True)
     train_loader = DataLoader(ModelNet40(partition='train', num_points=args.num_points), num_workers=8,
-                              batch_size=args.batch_size, shuffle=True, drop_last=True)
-    test_loader = DataLoader(ModelNet40(partition='test', num_points=args.num_points), num_workers=8,
-                             batch_size=args.test_batch_size, shuffle=True, drop_last=False)
+                              batch_size=2, shuffle=True, drop_last=True)
+    #print("data loader")
+    #print("train loader length", len(train_loader))
+    #test_loader = DataLoader(ModelNet40(partition='test', num_points=args.num_points), num_workers=8,
+    #                         batch_size=args.test_batch_size, shuffle=True, drop_last=False)
 
     device = torch.device("cuda" if args.cuda else "cpu")
 
@@ -65,12 +69,14 @@ def train(args, io):
 
     scheduler = CosineAnnealingLR(opt, args.epochs, eta_min=args.lr)
     
-    #criterion = cal_loss
-    criterion = nn.MSELoss()
+    criterion = cal_loss
+    #criterion = nn.MSELoss()
+    criterion = nn.L1Loss()
 
     best_test_acc = 0
-    cuda0 = torch.device('cuda:0')
+    count = 0
     for epoch in range(args.epochs):
+        #print("epoch", epoch)
         scheduler.step()
         ####################
         # Train
@@ -78,49 +84,104 @@ def train(args, io):
         train_loss = 0.0
         count = 0.0
         model.train()
-        #train_pred = []
-        #train_true = []
+        train_pred = []
+        train_true = []
+        #print("train loader length", len(train_loader))
         for data, label in train_loader:
-            print("label", label)
             #data, label = data.to(device), label.to(device).squeeze()
-            data = data.to(device)
-            label = torch.tensor(label, dtype=torch.float32, device=cuda0).reshape(-1, 1)
-            #label = label.to(device).squeeze()
-            label = label.to(device)
+            #label = torch.ones(32, 1, dtype=torch.float, requires_grad=True)
+            data, label = data.to(device), label.to(device)
+            #count += 1
             data = data.permute(0, 2, 1)
             batch_size = data.size()[0]
             opt.zero_grad()
             logits = model(data)
+            #print(label, logits)
+            #logits = torch.zeros(32, 1, dtype=torch.float, requires_grad=True)
+            logits = logits.to(device)
             loss = criterion(logits, label)
+            #print("logits", logits)
+            #print("label", label)
             loss.backward()
             opt.step()
             preds = logits.max(dim=1)[1]
             count += batch_size
-        io.cprint('finished epoch')
+            train_loss += loss.item() * batch_size
+            #train_true.append(label.cpu().numpy())
+            #train_pred.append(preds.detach().cpu().numpy())
+        #train_true = np.concatenate(train_true)
+        #train_pred = np.concatenate(train_pred)
+        # outstr = 'Train %d, loss: %.6f, train acc: %.6f, train avg acc: %.6f' % (epoch,
+        #                                                                          train_loss*1.0/count,
+        #                                                                          metrics.accuracy_score(
+        #                                                                              train_true, train_pred),
+        #                                                                          metrics.balanced_accuracy_score(
+        #                                                                              train_true, train_pred))
+        # io.cprint(outstr)
+        print('train loss', train_loss * 1.0 / count)
         ####################
         # Test
         ####################
-        test_loss = 0.0
-        count = 0.0
-        model.eval()
-        #test_pred = []
-        #test_true = []
-        for data, label in test_loader:
-            #data, label = data.to(device), label.to(device).squeeze()
-            data = data.to(device)
-            label = torch.tensor(label, dtype=torch.float32, device=cuda0).reshape(-1, 1)
-            #label = label.to(device).squeeze()
-            label = label.to(device)
-            data = data.permute(0, 2, 1)
-            batch_size = data.size()[0]
-            logits = model(data)
-            loss = criterion(logits, label)
-            preds = logits.max(dim=1)[1]
-            count += batch_size
-        io.cprint("fnished testing epoch")
-        #if test_acc >= best_test_acc:
-        #    best_test_acc = test_acc
-        #    torch.save(model.state_dict(), 'checkpoints/%s/models/model.t7' % args.exp_name)
+        # test_loss = 0.0
+        # count = 0.0
+        # model.eval()
+        # test_pred = []
+        # test_true = []
+        # for data, label in test_loader:
+        #     data, label = data.to(device), label.to(device).squeeze()
+        #     data = data.permute(0, 2, 1)
+        #     batch_size = data.size()[0]
+        #     logits = model(data)
+        #     loss = criterion(logits, label)
+        #     preds = logits.max(dim=1)[1]
+        #     count += batch_size
+        #     test_loss += loss.item() * batch_size
+        #     test_true.append(label.cpu().numpy())
+        #     test_pred.append(preds.detach().cpu().numpy())
+        # test_true = np.concatenate(test_true)
+        # test_pred = np.concatenate(test_pred)
+        # test_acc = metrics.accuracy_score(test_true, test_pred)
+        # avg_per_class_acc = metrics.balanced_accuracy_score(test_true, test_pred)
+        # outstr = 'Test %d, loss: %.6f, test acc: %.6f, test avg acc: %.6f' % (epoch,
+        #                                                                       test_loss*1.0/count,
+        #                                                                       test_acc,
+        #                                                                       avg_per_class_acc)
+        # io.cprint(outstr)
+        # if test_acc >= best_test_acc:
+        #     best_test_acc = test_acc
+        #     torch.save(model.state_dict(), 'checkpoints/%s/models/model.t7' % args.exp_name)
+
+
+def test(args, io):
+    test_loader = DataLoader(ModelNet40(partition='test', num_points=args.num_points),
+                             batch_size=args.test_batch_size, shuffle=True, drop_last=False)
+    device = torch.device("cuda" if args.cuda else "cpu")
+
+    #Try to load models
+    model = DGCNN(args).to(device)
+    model = nn.DataParallel(model)
+    model.load_state_dict(torch.load(args.model_path))
+    model = model.eval()
+    test_acc = 0.0
+    count = 0.0
+    test_true = []
+    test_pred = []
+    for data, label in test_loader:
+
+        data, label = data.to(device), label.to(device).squeeze()
+        data = data.permute(0, 2, 1)
+        batch_size = data.size()[0]
+        logits = model(data)
+        preds = logits.max(dim=1)[1]
+        test_true.append(label.cpu().numpy())
+        test_pred.append(preds.detach().cpu().numpy())
+    test_true = np.concatenate(test_true)
+    test_pred = np.concatenate(test_pred)
+    test_acc = metrics.accuracy_score(test_true, test_pred)
+    avg_per_class_acc = metrics.balanced_accuracy_score(test_true, test_pred)
+    outstr = 'Test :: test acc: %.6f, test avg acc: %.6f'%(test_acc, avg_per_class_acc)
+    io.cprint(outstr)
+
 
 if __name__ == "__main__":
     # Training settings
