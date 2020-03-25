@@ -41,7 +41,8 @@ def load_data(partition):
     #print("data directory:", DATA_DIR)
     #for h5_name in glob.glob(os.path.join(DATA_DIR, 'modelnet40_ply_hdf5_2048', 'ply_data_%s*.h5'%partition)):
     #print("loading data")
-    for h5_name in glob.glob("data/caesar/*"):
+    #for h5_name in glob.glob("data/caesar/*"):
+    for h5_name in glob.glob("data/all_scanners/*"):
         #print(h5_name)
         #break
         f = h5py.File(h5_name, 'r')
