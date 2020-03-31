@@ -22,6 +22,8 @@ import numpy as np
 from torch.utils.data import DataLoader
 from util import cal_loss, IOStream
 import sklearn.metrics as metrics
+from torch.utils.tensorboard import SummaryWriter
+import pandas as pd
 
 
 def _init_():
@@ -37,6 +39,7 @@ def _init_():
     os.system('cp data.py checkpoints' + '/' + args.exp_name + '/' + 'data.py.backup')
 
 def train(args, io):
+    writer = SummaryWriter('')
     # train_loader = DataLoader(ModelNet40(partition='train', num_points=args.num_points), num_workers=8,
     #                           batch_size=args.batch_size, shuffle=True, drop_last=True)
     train_loader = DataLoader(ModelNet40(partition='train', num_points=args.num_points), num_workers=8,
@@ -76,7 +79,11 @@ def train(args, io):
 
     best_test_loss = float('inf')
     count = 0
-    for epoch in range(args.epochs):
+    df = pd.DataFrame()
+    df_label = pd.DataFrame()
+    df_data = pd.DataFrame()
+    #for epoch in range(args.epochs):
+    for epoch in range(100):
         print("epoch", epoch)
         scheduler.step()
         ####################
@@ -105,6 +112,7 @@ def train(args, io):
         train_true = np.concatenate(train_true)
         train_pred = np.concatenate(train_pred)
         print('train loss', train_loss * 1.0 / count)
+        #writer.add_scalar('training loss', train_loss / count, epoch)
         ####################
         # Test
         ####################
@@ -119,6 +127,8 @@ def train(args, io):
             batch_size = data.size()[0]
             logits = model(data)
             logits = logits.to(device)
+            #print("logits length", len(logits))
+            #print("test predictions", logits)
             loss = criterion(logits, label)
             preds = logits.max(dim=1)[1]
             count += batch_size
@@ -128,9 +138,21 @@ def train(args, io):
         test_true = np.concatenate(test_true)
         test_pred = np.concatenate(test_pred)
         print('test loss', test_loss * 1.0 / count)
+        df[str(epoch)] = [float(x) for x in logits[0]]
+        df_label[str(epoch)] = [float(x) for x in label[0]]
+        #print("data", data.tolist()[0])
+        df_data[str(epoch)] = data.tolist()[0]
+        #print("data length", len(data.tolist()))
+        #print("data 0 length", len(data.tolist()[0]))
+        #print("data 0 0 length", len(data.tolist()[0][0]))
+        #writer.add_scalar('validation loss', test_loss / count, epoch)
         if test_loss <= best_test_loss:
             best_test_loss = test_loss
             torch.save(model.state_dict(), 'checkpoints/%s/models/model.t7' % args.exp_name)
+    writer.close()
+    #df.to_csv('predictions.csv')
+    #df_label.to_csv('labels.csv')
+    #df_data.to_csv('data.csv')
 
 
 def test(args, io):
