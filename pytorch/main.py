@@ -83,7 +83,7 @@ def train(args, io):
     df_label = pd.DataFrame()
     df_data = pd.DataFrame()
     #for epoch in range(args.epochs):
-    for epoch in range(100):
+    for epoch in range(5):
         print("epoch", epoch)
         scheduler.step()
         ####################
@@ -112,7 +112,7 @@ def train(args, io):
         train_true = np.concatenate(train_true)
         train_pred = np.concatenate(train_pred)
         print('train loss', train_loss * 1.0 / count)
-        #writer.add_scalar('training loss', train_loss / count, epoch)
+        writer.add_scalar('training loss', train_loss / count, epoch)
         ####################
         # Test
         ####################
@@ -125,6 +125,11 @@ def train(args, io):
             data, label = data.to(device), label.to(device)
             data = data.permute(0, 2, 1)
             batch_size = data.size()[0]
+            #print("data length", len(data))
+            #print("data 0 length", len(data[0]))
+            #print("data 0 0 length", len(data[0][0]))
+            #print("data 0 1 length", len(data[0][1]))
+            #print("data 0 2 length", len(data[0][2]))
             logits = model(data)
             logits = logits.to(device)
             #print("logits length", len(logits))
@@ -141,18 +146,23 @@ def train(args, io):
         df[str(epoch)] = [float(x) for x in logits[0]]
         df_label[str(epoch)] = [float(x) for x in label[0]]
         #print("data", data.tolist()[0])
-        df_data[str(epoch)] = data.tolist()[0]
+        data_list = []
+        for x, y, z in zip(data.tolist()[0][0], data.tolist()[0][1], data.tolist()[0][2]):
+            data_list.append(x)
+            data_list.append(y)
+            data_list.append(z)
+        df_data[str(epoch)] = data_list
         #print("data length", len(data.tolist()))
         #print("data 0 length", len(data.tolist()[0]))
         #print("data 0 0 length", len(data.tolist()[0][0]))
-        #writer.add_scalar('validation loss', test_loss / count, epoch)
+        writer.add_scalar('validation loss', test_loss / count, epoch)
         if test_loss <= best_test_loss:
             best_test_loss = test_loss
             torch.save(model.state_dict(), 'checkpoints/%s/models/model.t7' % args.exp_name)
     writer.close()
-    #df.to_csv('predictions.csv')
-    #df_label.to_csv('labels.csv')
-    #df_data.to_csv('data.csv')
+    df.to_csv('val_predictions_simplified.csv')
+    df_label.to_csv('val_labels_simplified.csv')
+    df_data.to_csv('data_simplified.csv')
 
 
 def test(args, io):
