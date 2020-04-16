@@ -17,7 +17,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from data import ModelNet40
-from model import PointNet, DGCNN
+from model import PointNet, DGCNN_semseg
 import numpy as np
 from torch.utils.data import DataLoader
 from util import cal_loss, IOStream
@@ -56,7 +56,8 @@ def train(args, io):
     if args.model == 'pointnet':
         model = PointNet(args).to(device)
     elif args.model == 'dgcnn':
-        model = DGCNN(args).to(device)
+        model = DGCNN_semseg(args).to(device)
+        #model = DGCNN(args).to(device)
     else:
         raise Exception("Not implemented")
     print(str(model))
@@ -73,11 +74,12 @@ def train(args, io):
 
     scheduler = CosineAnnealingLR(opt, args.epochs, eta_min=args.lr)
     
-    criterion = cal_loss
+    #criterion = cal_loss
     #criterion = nn.MSELoss()
-    criterion = nn.L1Loss()
-
+    #criterion = nn.L1Loss()
+    criterion = nn.CrossEntropyLoss()
     best_test_loss = float('inf')
+    best_test_acc = 0
     count = 0
     df = pd.DataFrame()
     df_label = pd.DataFrame()
@@ -95,74 +97,98 @@ def train(args, io):
         train_pred = []
         train_true = []
         for data, label in train_loader:
+            label = torch.tensor(label, dtype=torch.long, device=device)
             data, label = data.to(device), label.to(device)
             data = data.permute(0, 2, 1)
+            #print("data size", data.size())
+            #print("label size", label.size())
+            #print(label[0][0])
             batch_size = data.size()[0]
             opt.zero_grad()
             logits = model(data)
+            #print("logits", logits)
+            #print("logits size", logits.size())
             logits = logits.to(device)
+            #print(logits[0][0])
+            #print("logits size", logits.size())
+            #logits = logits.permute(0, 2, 1).contiguous()
+            #print("permuted logits size", logits.size())
+            #num_vertices = 961
+            #atch_size = 2
+            #num_labels = 75
+            #labels = torch.empty(batch_size, num_vertices, dtype=torch.long).random_(num_labels)
+            #labels = labels.to(device)
+            #preds = torch.randn(batch_size, num_labels, num_vertices, requires_grad=True)
+            #print("preds size", preds.size())
+            #print(preds)
+            #y_tensor = torch.tensor(logits, dtype=torch.long, device=device)
+            #print("preds size", preds.size())
+            #print("label size", label.size())
+            #print("fake label size", labels.size())
             loss = criterion(logits, label)
-            loss.backward()
-            opt.step()
-            preds = logits.max(dim=1)[1]
+            #loss = criterion(preds, labels)
+            #loss.backward()
+            #opt.step()
+            train_loss += loss.item() * 2
+    #         preds = logits.max(dim=1)[1]
             count += batch_size
-            train_loss += loss.item() * batch_size
-            train_true.append(label.cpu().numpy())
-            train_pred.append(preds.detach().cpu().numpy())
-        train_true = np.concatenate(train_true)
-        train_pred = np.concatenate(train_pred)
+    #         train_loss += loss.item() * batch_size
+    #         train_true.append(label.cpu().numpy())
+    #         train_pred.append(preds.detach().cpu().numpy())
+    #     train_true = np.concatenate(train_true)
+    #     train_pred = np.concatenate(train_pred)
         print('train loss', train_loss * 1.0 / count)
-        writer.add_scalar('training loss', train_loss / count, epoch)
-        ####################
-        # Test
-        ####################
-        test_loss = 0.0
-        count = 0.0
-        model.eval()
-        test_pred = []
-        test_true = []
-        for data, label in test_loader:
-            data, label = data.to(device), label.to(device)
-            data = data.permute(0, 2, 1)
-            batch_size = data.size()[0]
-            #print("data length", len(data))
-            #print("data 0 length", len(data[0]))
-            #print("data 0 0 length", len(data[0][0]))
-            #print("data 0 1 length", len(data[0][1]))
-            #print("data 0 2 length", len(data[0][2]))
-            logits = model(data)
-            logits = logits.to(device)
-            #print("logits length", len(logits))
-            #print("test predictions", logits)
-            loss = criterion(logits, label)
-            preds = logits.max(dim=1)[1]
-            count += batch_size
-            test_loss += loss.item() * batch_size
-            test_true.append(label.cpu().numpy())
-            test_pred.append(preds.detach().cpu().numpy())
-        test_true = np.concatenate(test_true)
-        test_pred = np.concatenate(test_pred)
-        print('test loss', test_loss * 1.0 / count)
-        df[str(epoch)] = [float(x) for x in logits[0]]
-        df_label[str(epoch)] = [float(x) for x in label[0]]
-        #print("data", data.tolist()[0])
-        data_list = []
-        for x, y, z in zip(data.tolist()[0][0], data.tolist()[0][1], data.tolist()[0][2]):
-            data_list.append(x)
-            data_list.append(y)
-            data_list.append(z)
-        df_data[str(epoch)] = data_list
-        #print("data length", len(data.tolist()))
-        #print("data 0 length", len(data.tolist()[0]))
-        #print("data 0 0 length", len(data.tolist()[0][0]))
-        writer.add_scalar('validation loss', test_loss / count, epoch)
-        if test_loss <= best_test_loss:
-            best_test_loss = test_loss
-            torch.save(model.state_dict(), 'checkpoints/%s/models/model.t7' % args.exp_name)
-    writer.close()
-    df.to_csv('val_predictions_simplified.csv')
-    df_label.to_csv('val_labels_simplified.csv')
-    df_data.to_csv('data_simplified.csv')
+    #     writer.add_scalar('training loss', train_loss / count, epoch)
+    #     ####################
+    #     # Test
+    #     ####################
+    #     test_loss = 0.0
+    #     count = 0.0
+    #     model.eval()
+    #     test_pred = []
+    #     test_true = []
+    #     for data, label in test_loader:
+    #         data, label = data.to(device), label.to(device)
+    #         data = data.permute(0, 2, 1)
+    #         batch_size = data.size()[0]
+    #         #print("data length", len(data))
+    #         #print("data 0 length", len(data[0]))
+    #         #print("data 0 0 length", len(data[0][0]))
+    #         #print("data 0 1 length", len(data[0][1]))
+    #         #print("data 0 2 length", len(data[0][2]))
+    #         logits = model(data)
+    #         logits = logits.to(device)
+    #         #print("logits length", len(logits))
+    #         #print("test predictions", logits)
+    #         loss = criterion(logits, label)
+    #         preds = logits.max(dim=1)[1]
+    #         count += batch_size
+    #         test_loss += loss.item() * batch_size
+    #         test_true.append(label.cpu().numpy())
+    #         test_pred.append(preds.detach().cpu().numpy())
+    #     test_true = np.concatenate(test_true)
+    #     test_pred = np.concatenate(test_pred)
+    #     print('test loss', test_loss * 1.0 / count)
+    #     #df[str(epoch)] = [float(x) for x in logits[0]]
+    #     #df_label[str(epoch)] = [float(x) for x in label[0]]
+    #     #print("data", data.tolist()[0])
+    #     # data_list = []
+    #     # for x, y, z in zip(data.tolist()[0][0], data.tolist()[0][1], data.tolist()[0][2]):
+    #     #     data_list.append(x)
+    #     #     data_list.append(y)
+    #     #     data_list.append(z)
+    #     # df_data[str(epoch)] = data_list
+    #     #print("data length", len(data.tolist()))
+    #     #print("data 0 length", len(data.tolist()[0]))
+    #     #print("data 0 0 length", len(data.tolist()[0][0]))
+    #     writer.add_scalar('validation loss', test_loss / count, epoch)
+    #     if test_loss <= best_test_loss:
+    #         best_test_loss = test_loss
+    #         torch.save(model.state_dict(), 'checkpoints/%s/models/model.t7' % args.exp_name)
+    # writer.close()
+    #df.to_csv('val_predictions_simplified.csv')
+    #df_label.to_csv('val_labels_simplified.csv')
+    #df_data.to_csv('data_simplified.csv')
 
 
 def test(args, io):

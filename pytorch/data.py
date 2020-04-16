@@ -43,7 +43,8 @@ def load_data(partition):
     #print("loading data")
     #for h5_name in glob.glob("data/caesar/*"):
     # for h5_name in glob.glob("data/all_scanners/*"):
-    for h5_name in glob.glob("data/all_scanners/" + partition + "/*"):
+    #for h5_name in glob.glob("data/all_scanners/" + partition + "/*"):
+    for h5_name in glob.glob("data/classification/" + partition + "/*"):
         #print(h5_name)
         #break
         f = h5py.File(h5_name, 'r')
@@ -85,9 +86,9 @@ class ModelNet40(Dataset):
     def __getitem__(self, item):
         pointcloud = self.data[item][:self.num_points]
         label = self.label[item]
-        if self.partition == 'train':
-            pointcloud = translate_pointcloud(pointcloud)
-            np.random.shuffle(pointcloud)
+        # if self.partition == 'train':
+        #     pointcloud = translate_pointcloud(pointcloud)
+        #     np.random.shuffle(pointcloud)
         return pointcloud, label
 
     def __len__(self):
